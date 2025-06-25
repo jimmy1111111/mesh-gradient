@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesh Gradient Background</title>
+    <!-- Tailwind CSS for basic utilities and responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS for mesh gradients and animations */
+        body {
+            /* Set a black background for the entire page */
+            background-color: black;
+            /* Hide scrollbars to prevent them from appearing due to absolute positioning */
+            overflow: hidden;
+            /* Hide the default cursor to show only our custom gradient circle */
+            cursor: none;
+            /* Use Inter font as per guidelines */
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Base styles for all gradient circles */
+        .gradient-circle {
+            position: absolute; /* Allows for precise positioning using top/left */
+            width: 300px;
+            height: 300px;
+            border-radius: 50%; /* Makes the elements perfectly circular */
+            /* Apply a strong blur filter to create the 'mesh gradient' ethereal effect */
+            filter: blur(100px);
+            opacity: 0.8; /* Slightly transparent to allow for layering */
+            /* Prevents the circles from blocking mouse events on elements beneath them */
+            pointer-events: none;
+            /* Smooth transitions for size, background, and opacity changes */
+            transition: transform 0.1s ease-out, background 0.3s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        }
+
+        /* Specific styles for the red gradient circle */
+        .gradient-red {
+            background: radial-gradient(circle at center, #ff007f, #ff4d94, #660033); /* Red/Pink gradient */
+            /* Apply a linear rotation animation */
+            animation: rotateRandom 20s linear infinite;
+        }
+
+        /* Specific styles for the blue gradient circle */
+        .gradient-blue {
+            background: radial-gradient(circle at center, #00bfff, #007bff, #003366); /* Light Blue/Blue gradient */
+            /* Apply a linear rotation animation in reverse direction */
+            animation: rotateRandom 25s linear infinite reverse;
+        }
+
+        /* Specific styles for the pink gradient circle */
+        .gradient-pink {
+            background: radial-gradient(circle at center, #ff00ff, #ff66ff, #990099); /* Bright Pink/Magenta gradient */
+            /* Apply a linear rotation animation */
+            animation: rotateRandom 18s linear infinite;
+        }
+
+        /* Specific styles for the purple mouse-following gradient circle */
+        .gradient-purple-mouse {
+            background: radial-gradient(circle at center, #9933ff, #6600cc, #330066); /* Purple gradient */
+            z-index: 100; /* Ensure this circle stays on top of others */
+            width: 150px; /* Initial size of the mouse follower */
+            height: 150px;
+            /* Slightly less blur for a more defined look for the interactive element */
+            filter: blur(80px);
+            /* Faster transform transition for smoother mouse following */
+            transition: transform 0.05s ease-out, background 0.3s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out;
+        }
+
+        /* Keyframe animation for continuous rotation */
+        @keyframes rotateRandom {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments for smaller screens (tablets and mobile) */
+        @media (max-width: 768px) {
+            .gradient-circle {
+                width: 200px; /* Smaller size for fixed circles */
+                height: 200px;
+                filter: blur(80px); /* Adjust blur intensity */
+            }
+            .gradient-purple-mouse {
+                width: 100px; /* Smaller size for mouse circle */
+                height: 100px;
+                filter: blur(60px); /* Adjust blur intensity */
+            }
+        }
+    </style>
+</head>
+<body class="bg-black h-screen w-screen relative">
+
+    <!-- The three static gradient circles -->
+    <div id="red-circle" class="gradient-circle gradient-red"></div>
+    <div id="blue-circle" class="gradient-circle gradient-blue"></div>
+    <div id="pink-circle" class="gradient-circle gradient-pink"></div>
+
+    <!-- The mouse-following gradient circle -->
+    <div id="mouse-circle" class="gradient-circle gradient-purple-mouse"></div>
+
+    <script>
+        // Get references to the DOM elements
+        const mouseCircle = document.getElementById('mouse-circle');
+        const fixedCircles = [
+            // Store fixed circle elements along with their original colors and velocity for movement
+            { element: document.getElementById('red-circle'), color: 'red', initialColor: 'radial-gradient(circle at center, #ff007f, #ff4d94, #660033)', vx: 1.5, vy: 1.0 },
+            { element: document.getElementById('blue-circle'), color: 'blue', initialColor: 'radial-gradient(circle at center, #00bfff, #007bff, #003366)', vx: -1.0, vy: 1.2 },
+            { element: document.getElementById('pink-circle'), color: 'pink', initialColor: 'radial-gradient(circle at center, #ff00ff, #ff66ff, #990099)', vx: 1.2, vy: -1.5 }
+        ];
+
+        // Constants for mouse circle's initial state and morphing behavior
+        const initialMouseColor = 'radial-gradient(circle at center, #9933ff, #6600cc, #330066)'; // Original purple color
+        const initialMouseSize = 150; // Original size of the mouse follower
+        const morphedMouseSize = 400; // Size when the mouse circle morphs/connects
+        const morphThreshold = 150; // Distance in pixels to trigger morphing
+
+        // Function to set random initial positions for the static circles
+        function initializeFixedCirclePositions() {
+            fixedCircles.forEach(circle => {
+                // Calculate random X and Y coordinates within the window boundaries
+                // Subtract element width/height to keep the entire circle on screen
+                const x = Math.random() * (window.innerWidth - circle.element.offsetWidth);
+                const y = Math.random() * (window.innerHeight - circle.element.offsetHeight);
+                circle.element.style.left = `${x}px`;
+                circle.element.style.top = `${y}px`;
+                // Ensure visibility and interactivity when initially placed
+                circle.element.style.opacity = 0.8;
+                circle.element.style.pointerEvents = 'none'; // Keep pointer events off for fixed circles
+                circle.element.style.background = circle.initialColor; // Reset color to original
+            });
+        }
+
+        // Animation loop for fixed circles' movement
+        function animateFixedCircles() {
+            fixedCircles.forEach(circle => {
+                const element = circle.element;
+                let currentX = parseFloat(element.style.left);
+                let currentY = parseFloat(element.style.top);
+
+                // Update position based on velocity
+                currentX += circle.vx;
+                currentY += circle.vy;
+
+                // Get dimensions to check boundaries
+                const elementWidth = element.offsetWidth;
+                const elementHeight = element.offsetHeight;
+
+                // Boundary checks: bounce off the edges
+                if (currentX + elementWidth > window.innerWidth || currentX < 0) {
+                    circle.vx *= -1; // Reverse horizontal velocity
+                    // Adjust position slightly to prevent sticking to the edge
+                    if (currentX + elementWidth > window.innerWidth) currentX = window.innerWidth - elementWidth;
+                    if (currentX < 0) currentX = 0;
+                }
+                if (currentY + elementHeight > window.innerHeight || currentY < 0) {
+                    circle.vy *= -1; // Reverse vertical velocity
+                    // Adjust position slightly to prevent sticking to the edge
+                    if (currentY + elementHeight > window.innerHeight) currentY = window.innerHeight - elementHeight;
+                    if (currentY < 0) currentY = 0;
+                }
+
+                // Apply updated position
+                element.style.left = `${currentX}px`;
+                element.style.top = `${currentY}px`;
+            });
+
+            // Request the next animation frame to continue the movement
+            requestAnimationFrame(animateFixedCircles);
+        }
+
+        // Initialize positions and start the animation loop when the page loads
+        window.onload = function() {
+            initializeFixedCirclePositions();
+            animateFixedCircles();
+        };
+
+        // Event listener for mouse movement
+        document.addEventListener('mousemove', (e) => {
+            const mouseX = e.clientX; // Current mouse X coordinate
+            const mouseY = e.clientY; // Current mouse Y coordinate
+
+            // Position the mouse circle relative to the cursor, centering it
+            mouseCircle.style.left = `${mouseX - mouseCircle.offsetWidth / 2}px`;
+            mouseCircle.style.top = `${mouseY - mouseCircle.offsetHeight / 2}px`;
+
+            let closestCircle = null;
+            let minDistance = Infinity;
+
+            // Iterate over each fixed circle to check for proximity
+            fixedCircles.forEach(circle => {
+                const circleRect = circle.element.getBoundingClientRect();
+                // Calculate the center coordinates of the fixed circle
+                const circleX = circleRect.left + circleRect.width / 2;
+                const circleY = circleRect.top + circleRect.height / 2;
+
+                // Calculate the Euclidean distance between the mouse and fixed circle centers
+                const distance = Math.sqrt(
+                    Math.pow(mouseX - circleX, 2) + Math.pow(mouseY - circleY, 2)
+                );
+
+                // If this circle is closer than previous ones and within the threshold
+                if (distance < minDistance && distance < morphThreshold) {
+                    minDistance = distance;
+                    closestCircle = circle;
+                }
+            });
+
+            // Apply morphing effect based on proximity
+            if (closestCircle) {
+                // Morph effect: enlarge and change color to match the closest fixed circle
+                mouseCircle.style.width = `${morphedMouseSize}px`;
+                mouseCircle.style.height = `${morphedMouseSize}px`;
+                mouseCircle.style.background = closestCircle.initialColor;
+            } else {
+                // Revert to initial state if no fixed circles are nearby
+                mouseCircle.style.width = `${initialMouseSize}px`;
+                mouseCircle.style.height = `${initialMouseSize}px`;
+                mouseCircle.style.background = initialMouseColor;
+            }
+        });
+    </script>
+</body>
+</html>
+
